@@ -1,0 +1,31 @@
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: Docker@2
+  displayName: 'Build and push Docker image'
+  inputs:
+    containerRegistry: 'dockerHubConnection' # Set up Docker Hub connection in Service Connections
+    repository: 'yourusername/my-website'
+    command: 'buildAndPush'
+    Dockerfile: '**/Dockerfile'
+    tags: 'latest'
+
+- task: AzureCLI@2
+  displayName: 'Deploy to Azure Container Instances'
+  inputs:
+    azureSubscription: 'azureConnection' # Set up Azure service connection
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      az container create \
+        --resource-group myResourceGroup \
+        --name my-website-container \
+        --image yourusername/my-website:latest \
+        --dns-name-label my-website-$(date +%s) \
+        --ports 3000 \
+        --registry-username $DOCKER_USERNAME \
+        --registry-password $DOCKER_PASSWORD
